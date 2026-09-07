@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SupportPortal — AppWorks Metrics Platform</title>
+<style>
+  :root {
+    --bg: #0b0e16;
+    --panel: #12161f;
+    --panel-2: #171c28;
+    --border: #232939;
+    --text: #e6e9f0;
+    --text-dim: #8b93a7;
+    --text-faint: #5a6274;
+    --accent: #3b82f6;
+    --accent-dim: #1d4ed8;
+    --pass: #22c55e;
+    --warn: #d97706;
+    --fail: #ef4444;
+    --error: #a855f7;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+  }
+  a { color: inherit; text-decoration: none; }
+  button { font-family: inherit; cursor: pointer; }
+
+  .layout { display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 20px 14px;
+  }
+  .brand { padding: 4px 8px 20px; }
+  .brand-name { font-size: 16px; font-weight: 600; }
+  .brand-sub { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+  .nav-group { margin-top: 18px; }
+  .nav-label {
+    font-size: 11px; color: var(--text-faint); letter-spacing: 0.06em;
+    padding: 0 8px 6px; font-weight: 600;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 10px; border-radius: 6px; color: var(--text-dim);
+    font-size: 13.5px; cursor: pointer; margin-bottom: 2px;
+  }
+  .nav-item:hover { background: var(--panel-2); color: var(--text); }
+  .nav-item.active { background: rgba(59,130,246,0.15); color: var(--accent); }
+
+  /* Main */
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 28px; border-bottom: 1px solid var(--border);
+  }
+  .topbar h1 { font-size: 20px; margin: 0; font-weight: 600; }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12.5px; padding: 6px 12px; border-radius: 999px;
+    background: rgba(34,197,94,0.12); color: var(--pass);
+  }
+  .status-pill.off { background: rgba(239,68,68,0.12); color: var(--fail); }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .btn {
+    border: none; border-radius: 6px; padding: 9px 16px; font-size: 13.5px;
+    font-weight: 500; background: var(--accent); color: white;
+  }
+  .btn:hover { background: var(--accent-dim); }
+  .btn.secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+  .btn.small { padding: 6px 11px; font-size: 12.5px; }
+
+  .content { padding: 24px 28px; overflow-y: auto; }
+
+  /* Cards */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+  .kpi-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+  .kpi-label { font-size: 11.5px; color: var(--text-faint); letter-spacing: 0.05em; margin-bottom: 8px; }
+  .kpi-value { font-size: 28px; font-weight: 600; }
+  .kpi-sub { font-size: 12px; color: var(--text-faint); margin-top: 4px; }
+  .kpi-value.blue { color: var(--accent); }
+  .kpi-value.orange { color: var(--warn); }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px 20px; margin-bottom: 16px;
+  }
+  .panel h3 { margin: 0 0 2px; font-size: 15px; }
+  .panel .panel-sub { font-size: 12px; color: var(--text-faint); margin-bottom: 14px; }
+  .two-col { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left; font-size: 11px; letter-spacing: 0.04em; color: var(--text-faint);
+    padding: 8px 10px; border-bottom: 1px solid var(--border); font-weight: 600;
+  }
+  td { padding: 11px 10px; border-bottom: 1px solid var(--border); font-size: 13.5px; }
+  tr:last-child td { border-bottom: none; }
+  .row-title { font-weight: 500; }
+  .row-sub { color: var(--text-faint); font-size: 12px; }
+
+  .badge {
+    display: inline-block; padding: 3px 9px; border-radius: 5px; font-size: 11.5px; font-weight: 600;
+  }
+  .badge.PASS { background: rgba(34,197,94,0.15); color: var(--pass); }
+  .badge.WARNING { background: rgba(217,119,6,0.15); color: var(--warn); }
+  .badge.FAIL { background: rgba(239,68,68,0.15); color: var(--fail); }
+  .badge.ERROR { background: rgba(168,85,247,0.15); color: var(--error); }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; background: var(--panel-2); border: 1px solid var(--border); color: var(--text-dim); }
+  .mono { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 12px; color: var(--text-dim); }
+
+  .health-row { margin-bottom: 14px; }
+  .health-top { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+  .health-bar-bg { height: 6px; border-radius: 3px; background: var(--panel-2); overflow: hidden; }
+  .health-bar-fill { height: 100%; border-radius: 3px; }
+
+  /* Forms */
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12.5px; color: var(--text-dim); margin-bottom: 6px; }
+  .field input, .field select {
+    width: 100%; padding: 9px 11px; background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text); font-size: 13.5px; font-family: inherit;
+  }
+  .field input:focus, .field select:focus { outline: none; border-color: var(--accent); }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+
+  .filters-row { display: flex; gap: 10px; margin-bottom: 16px; }
+  .filters-row select { padding: 8px 12px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px; }
+
+  /* Modal / side panel */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none;
+    align-items: flex-start; justify-content: flex-end; z-index: 50;
+  }
+  .overlay.open { display: flex; }
+  .side-panel {
+    width: 420px; max-width: 92vw; height: 100vh; background: var(--panel);
+    border-left: 1px solid var(--border); padding: 22px; overflow-y: auto;
+  }
+  .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+  .panel-header h2 { font-size: 16px; margin: 0; }
+  .close-x { background: none; border: none; color: var(--text-faint); font-size: 18px; padding: 4px; }
+
+  .metric-pill-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .metric-pill {
+    border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 12.5px;
+    color: var(--text-dim); text-align: center; background: var(--panel-2);
+  }
+  .metric-pill.selected { background: rgba(59,130,246,0.18); border-color: var(--accent); color: var(--accent); }
+
+  .empty-note { color: var(--text-faint); font-size: 13px; padding: 30px 0; text-align: center; }
+  .error-note { color: var(--fail); font-size: 12.5px; margin-top: 8px; }
+  .form-footer { display: flex; gap: 10px; margin-top: 8px; }
+
+  .customer-detail-name { font-size: 18px; font-weight: 600; margin-bottom: 2px; }
+  .customer-detail-sub { color: var(--text-faint); font-size: 12.5px; margin-bottom: 18px; }
+  .subsection { margin-top: 20px; }
+  .subsection h4 { font-size: 13px; color: var(--text-dim); margin-bottom: 10px; text-transform: none; }
+  .inline-list-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+  }
+  .inline-list-item:last-child { border-bottom: none; }
+
+  .config-note {
+    font-size: 12.5px; color: var(--text-faint); background: var(--panel-2);
+    border: 1px dashed var(--border); border-radius: 6px; padding: 10px 12px; margin-top: 12px;
+  }
+  .toggle {
+    width: 36px; height: 20px; border-radius: 999px; background: var(--panel-2);
+    border: 1px solid var(--border); position: relative; cursor: pointer; flex-shrink: 0;
+  }
+  .toggle.on { background: var(--accent); border-color: var(--accent); }
+  .toggle::after {
+    content: ''; position: absolute; width: 14px; height: 14px; border-radius: 50%;
+    background: white; top: 2px; left: 2px; transition: left 0.15s;
+  }
+  .toggle.on::after { left: 18px; }
+  .customer-list-item { padding: 12px 14px; border-radius: 8px; cursor: pointer; margin-bottom: 4px; }
+  .customer-list-item:hover { background: var(--panel-2); }
+  .customer-list-item.active { background: rgba(59,130,246,0.12); border: 1px solid var(--accent-dim); }
+  .metric-status-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-top: 10px; }
+  .metric-status-card { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="brand">
+      <div class="brand-name">SupportPortal</div>
+      <div class="brand-sub">AppWorks Metrics Platform</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">OVERVIEW</div>
+      <div class="nav-item" data-route="dashboard">Dashboard</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">MANAGEMENT</div>
+      <div class="nav-item" data-route="customers">Customers</div>
+      <div class="nav-item" data-route="metrics">Metrics</div>
+      <div class="nav-item" data-route="history">Run History</div>
+      <div class="nav-item" data-route="schedules">Schedules</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">CONFIG</div>
+      <div class="nav-item" data-route="config">AppWorks Config</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <h1 id="page-title">Dashboard</h1>
+      <div class="topbar-right">
+        <span class="status-pill" id="api-status"><span class="status-dot"></span>Checking...</span>
+        <button class="btn" onclick="openRunNow()">▶ Run Now</button>
+      </div>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<!-- Manual Run overlay -->
+<div class="overlay" id="run-overlay">
+  <div class="side-panel">
+    <div class="panel-header"><h2>▶ Manual Run</h2><button class="close-x" onclick="closeOverlay('run-overlay')">✕</button></div>
+    <div class="field">
+      <label>Customer</label>
+      <select id="run-customer" onchange="onRunCustomerChange()"></select>
+    </div>
+    <div class="field">
+      <label>Environment</label>
+      <select id="run-environment"></select>
+    </div>
+    <div class="field">
+      <label>Select Metrics</label>
+      <div class="metric-pill-grid" id="run-metric-grid"></div>
+    </div>
+    <div id="run-error" class="error-note"></div>
+    <div class="form-footer">
+      <button class="btn secondary" onclick="closeOverlay('run-overlay')">Cancel</button>
+      <button class="btn" onclick="executeManualRun()">Execute</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Customer overlay -->
+<div class="overlay" id="customer-overlay">
+  <div class="side-panel">
+    <div class="panel-header"><h2>Add Customer</h2><button class="close-x" onclick="closeOverlay('customer-overlay')">✕</button></div>
+    <div class="field"><label>Customer Name</label><input id="cust-name" placeholder="Acme Corp"></div>
+    <div class="field-row">
+      <div class="field"><label>Customer Code</label><input id="cust-code" placeholder="ACME"></div>
+      <div class="field">
+        <label>Region</label>
+        <select id="cust-region">
+          <option value="US-East">US-East</option>
+          <option value="US-West">US-West</option>
+          <option value="EU-Central">EU-Central</option>
+          <option value="AP-South">AP-South</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Contact Email</label><input id="cust-email" placeholder="ops@acme.com"></div>
+
+    <div class="field">
+      <label>Environments</label>
+      <div class="checkbox-row" style="gap:18px;">
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+          <input type="checkbox" id="cust-env-prod" checked onchange="toggleCustEnvField('prod')"> PROD
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+          <input type="checkbox" id="cust-env-staging" onchange="toggleCustEnvField('staging')"> STAGING
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+          <input type="checkbox" id="cust-env-dev" onchange="toggleCustEnvField('dev')"> DEV
+        </label>
+      </div>
+    </div>
+    <div class="field" id="cust-env-prod-field">
+      <label>PROD Base URL</label>
+      <input id="cust-env-prod-url" placeholder="https://acme.appworks.com/api">
+    </div>
+    <div class="field" id="cust-env-staging-field" style="display:none;">
+      <label>STAGING Base URL</label>
+      <input id="cust-env-staging-url" placeholder="https://staging.acme.appworks.com/api">
+    </div>
+    <div class="field" id="cust-env-dev-field" style="display:none;">
+      <label>DEV Base URL</label>
+      <input id="cust-env-dev-url" placeholder="https://dev.acme.appworks.com/api">
+    </div>
+
+    <div id="cust-error" class="error-note"></div>
+    <div class="form-footer">
+      <button class="btn secondary" onclick="closeOverlay('customer-overlay')">Cancel</button>
+      <button class="btn" onclick="createCustomer()">Create Customer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Metric overlay -->
+<div class="overlay" id="metric-overlay">
+  <div class="side-panel">
+    <div class="panel-header"><h2>Add Metric</h2><button class="close-x" onclick="closeOverlay('metric-overlay')">✕</button></div>
+    <div class="field"><label>Metric Name</label><input id="metric-name" placeholder="Queue Depth Monitor"></div>
+    <div class="field"><label>Service Key</label><input id="metric-key" placeholder="SVC_QUEUE_03"></div>
+    <div class="field"><label>Description</label><input id="metric-desc" placeholder="Monitors task queue backlog"></div>
+    <div class="field"><label>Endpoint</label><input id="metric-endpoint" placeholder="/api/v1/metrics/queue/03"></div>
+    <div class="field-row">
+      <div class="field"><label>Warning Threshold</label><input id="metric-warn" type="number" placeholder="optional"></div>
+      <div class="field"><label>Critical Threshold</label><input id="metric-crit" type="number" placeholder="optional"></div>
+    </div>
+    <div class="field">
+      <label>Comparison Operator</label>
+      <select id="metric-op">
+        <option value="">— none —</option>
+        <option value="GREATER_THAN">Greater than</option>
+        <option value="GREATER_THAN_OR_EQUAL">Greater than or equal</option>
+        <option value="LESS_THAN">Less than</option>
+        <option value="LESS_THAN_OR_EQUAL">Less than or equal</option>
+      </select>
+    </div>
+    <div id="metric-error" class="error-note"></div>
+    <div class="form-footer">
+      <button class="btn secondary" onclick="closeOverlay('metric-overlay')">Cancel</button>
+      <button class="btn" onclick="createMetric()">Create Metric</button>
+    </div>
+  </div>
+</div>
+
+<!-- Schedule Builder overlay -->
+<div class="overlay" id="schedule-overlay">
+  <div class="side-panel">
+    <div class="panel-header"><h2>Schedule Builder</h2><button class="close-x" onclick="closeOverlay('schedule-overlay')">✕</button></div>
+    <div class="field">
+      <label>Customer</label>
+      <select id="sched-customer" onchange="onSchedCustomerChange()"></select>
+    </div>
+    <div class="field">
+      <label>Environment</label>
+      <select id="sched-environment"></select>
+    </div>
+    <div class="field">
+      <label>Metric <span class="row-sub">(must be assigned to this customer first)</span></label>
+      <select id="sched-metric"></select>
+    </div>
+    <div class="field">
+      <label>Cron Expression</label>
+      <input id="sched-cron" placeholder="*/5 * * * *">
+      <div class="row-sub" style="margin-top:6px;">5-field Unix cron accepted (e.g. every 5 min = */5 * * * *)</div>
+    </div>
+    <div class="checkbox-row">
+      <div class="toggle on" id="sched-enabled-toggle" onclick="this.classList.toggle('on')"></div>
+      <span>Enable schedule</span>
+    </div>
+    <div id="sched-error" class="error-note"></div>
+    <div class="form-footer">
+      <button class="btn secondary" onclick="closeOverlay('schedule-overlay')">Cancel</button>
+      <button class="btn" onclick="createSchedule()">Save Schedule</button>
+    </div>
+  </div>
+</div>
+
+<!-- Assign Metric to Customer overlay -->
+<div class="overlay" id="assign-overlay">
+  <div class="side-panel">
+    <div class="panel-header"><h2>Assign Metric</h2><button class="close-x" onclick="closeOverlay('assign-overlay')">✕</button></div>
+    <div class="field">
+      <label>Metric</label>
+      <select id="assign-metric"></select>
+    </div>
+    <div id="assign-error" class="error-note"></div>
+    <div class="form-footer">
+      <button class="btn secondary" onclick="closeOverlay('assign-overlay')">Cancel</button>
+      <button class="btn" onclick="assignMetricSubmit()">Assign</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Environment overlay -->
+<div class="overlay" id="env-overlay">
+  <div class="side-panel">
+    <div class="panel-header"><h2>Add Environment</h2><button class="close-x" onclick="closeOverlay('env-overlay')">✕</button></div>
+    <div class="field"><label>Environment Name</label><input id="env-name" placeholder="PROD"></div>
+    <div class="field"><label>Base URL</label><input id="env-url" placeholder="https://acme.appworks.com/api"></div>
+    <div id="env-error" class="error-note"></div>
+    <div class="form-footer">
+      <button class="btn secondary" onclick="closeOverlay('env-overlay')">Cancel</button>
+      <button class="btn" onclick="createEnvironment()">Add Environment</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let currentRoute = 'dashboard';
+let selectedCustomerId = null;
+let cache = { customers: [], metrics: [] };
+
+// ---------- utilities ----------
+async function api(method, path, body) {
+  const res = await fetch(API + path, {
+    method,
+    headers: body ? { 'Content-Type': 'application/json' } : {},
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!res.ok) {
+    let msg = 'Request failed (' + res.status + ')';
+    try { const j = await res.json(); if (j.message) msg = j.message; } catch (e) {}
+    throw new Error(msg);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+function el(id) { return document.getElementById(id); }
+function closeOverlay(id) { el(id).classList.remove('open'); }
+function openOverlay(id) { el(id).classList.add('open'); }
+function fmtPct(v) { return v === null || v === undefined ? '—' : v.toFixed(1) + '%'; }
+function fmtDate(s) { if (!s) return '—'; return new Date(s).toLocaleString(); }
+function healthColor(pct) {
+  if (pct === null || pct === undefined) return 'var(--text-faint)';
+  if (pct >= 90) return 'var(--pass)';
+  if (pct >= 75) return 'var(--warn)';
+  return 'var(--fail)';
+}
+
+// ---------- routing ----------
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => navigate(item.dataset.route));
+});
+function navigate(route) {
+  currentRoute = route;
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.dataset.route === route));
+  const titles = { dashboard: 'Dashboard', customers: 'Customers', metrics: 'Metrics', history: 'Run History', schedules: 'Schedules', config: 'AppWorks Config' };
+  el('page-title').textContent = titles[route];
+  render();
+}
+
+async function checkApiStatus() {
+  const pill = el('api-status');
+  try {
+    await api('GET', '/api/v1/dashboard/summary');
+    pill.className = 'status-pill';
+    pill.innerHTML = '<span class="status-dot"></span>API Connected';
+  } catch (e) {
+    pill.className = 'status-pill off';
+    pill.innerHTML = '<span class="status-dot"></span>API Disconnected';
+  }
+}
+
+// ---------- render dispatch ----------
+async function render() {
+  const c = el('content');
+  c.innerHTML = '<div class="empty-note">Loading…</div>';
+  try {
+    // Each of these MUST be awaited here — a bare "return renderX()" exits
+    // this try block immediately (before the promise settles), so any error
+    // thrown inside renderX() became an invisible unhandled rejection: the
+    // page just stayed stuck on "Loading..." forever with no visible error.
+    if (currentRoute === 'dashboard') { await renderDashboard(); return; }
+    if (currentRoute === 'customers') { await renderCustomers(); return; }
+    if (currentRoute === 'metrics') { await renderMetrics(); return; }
+    if (currentRoute === 'history') { await renderHistory(); return; }
+    if (currentRoute === 'schedules') { await renderSchedules(); return; }
+    if (currentRoute === 'config') { await renderConfig(); return; }
+  } catch (e) {
+    c.innerHTML = '<div class="panel"><strong>Could not load this page.</strong><div class="error-note">' + e.message + '</div></div>';
+  }
+}
+
+// ================= DASHBOARD =================
+async function renderDashboard() {
+  const [summary, health, recent, metricStatuses] = await Promise.all([
+    api('GET', '/api/v1/dashboard/summary'),
+    api('GET', '/api/v1/dashboard/customer-health'),
+    api('GET', '/api/v1/runs/history?size=8'),
+    api('GET', '/api/v1/dashboard/metric-status')
+  ]);
+
+  let html = '<div class="kpi-grid">';
+  html += kpi('CUSTOMERS', summary.totalCustomers, summary.activeCustomers + ' active');
+  html += kpi('METRICS CONFIGURED', summary.metricsConfigured, 'active assignments');
+  html += kpi('RUNS TODAY', summary.runsToday, summary.failToday + ' failed · ' + summary.passToday + ' passed');
+  html += kpi('AVG SUCCESS RATE', fmtPct(summary.successRateToday), 'today', 'orange');
+  html += '</div>';
+
+  html += '<div class="two-col">';
+  html += '<div class="panel"><h3>Recent Runs</h3><div class="panel-sub">Last ' + (recent.content.length) + ' executions</div>';
+  if (recent.content.length === 0) {
+    html += '<div class="empty-note">No runs yet — try Run Now.</div>';
+  } else {
+    html += '<table><tbody>';
+    recent.content.forEach(r => {
+      html += '<tr><td class="row-sub" style="width:110px;">' + fmtDate(r.startedAt) + '</td>' +
+        '<td class="row-title">' + r.metricName + '<div class="row-sub">' + r.customerName + '</div></td>' +
+        '<td><span class="tag">' + r.environmentName + '</span></td>' +
+        '<td><span class="badge ' + r.status + '">' + r.status + '</span></td>' +
+        '<td class="row-sub">' + r.durationMs + 'ms</td></tr>';
+    });
+    html += '</tbody></table>';
+  }
+  html += '</div>';
+
+  html += '<div class="panel"><h3>Customer Health Overview</h3><div class="panel-sub">PASS rate, all-time</div>';
+  if (health.length === 0) {
+    html += '<div class="empty-note">No customers yet.</div>';
+  } else {
+    health.forEach(h => {
+      const pct = h.healthPercentage;
+      html += '<div class="health-row"><div class="health-top"><span>' + h.customerName + '</span><span style="color:' + healthColor(pct) + '">' + fmtPct(pct) + '</span></div>' +
+        '<div class="health-bar-bg"><div class="health-bar-fill" style="width:' + (pct || 0) + '%; background:' + healthColor(pct) + '"></div></div></div>';
+    });
+  }
+  html += '</div></div>';
+
+  html += '<div class="panel" style="margin-top:16px;"><h3>All ' + metricStatuses.length + ' Metrics — Last Run Status</h3>';
+  if (metricStatuses.length === 0) {
+    html += '<div class="empty-note">No metrics in the catalog yet.</div>';
+  } else {
+    html += '<div class="metric-status-grid">';
+    metricStatuses.forEach(m => {
+      const status = m.lastStatus || 'NEVER_RUN';
+      const dotColor = status === 'PASS' ? 'var(--pass)' : status === 'WARNING' ? 'var(--warn)'
+        : status === 'FAIL' ? 'var(--fail)' : status === 'ERROR' ? 'var(--error)' : 'var(--text-faint)';
+      const badgeHtml = m.lastStatus
+        ? '<span class="badge ' + m.lastStatus + '">' + m.lastStatus + '</span>'
+        : '<span class="tag">never run</span>';
+      html += '<div class="metric-status-card">' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">' +
+        '<span class="status-dot" style="width:8px; height:8px; background:' + dotColor + ';"></span>' + badgeHtml + '</div>' +
+        '<div class="row-title">' + m.metricName + '</div>' +
+        '<div class="mono" style="margin-top:2px;">' + m.serviceKey + '</div></div>';
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+
+  el('content').innerHTML = html;
+}
+function kpi(label, value, sub, colorClass) {
+  return '<div class="kpi-card"><div class="kpi-label">' + label + '</div>' +
+    '<div class="kpi-value' + (colorClass ? ' ' + colorClass : '') + '">' + value + '</div>' +
+    '<div class="kpi-sub">' + sub + '</div></div>';
+}
+
+// ================= CUSTOMERS =================
+async function renderCustomers() {
+  cache.customers = await api('GET', '/api/v1/customers');
+  let html = '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">' +
+    '<div>' + cache.customers.length + ' customers configured</div>' +
+    '<button class="btn" onclick="openOverlay(\'customer-overlay\')">+ Add Customer</button></div>';
+  html += '<div class="two-col" style="grid-template-columns: 340px 1fr;">';
+  html += '<div class="panel"><h3>Customers</h3><div id="customer-list" style="margin-top:10px;"></div></div>';
+  html += '<div class="panel" id="customer-detail"><div class="empty-note">Select a customer to view details</div></div>';
+  html += '</div>';
+  el('content').innerHTML = html;
+
+  const list = el('customer-list');
+  cache.customers.forEach(c => {
+    const item = document.createElement('div');
+    item.className = 'customer-list-item' + (c.id === selectedCustomerId ? ' active' : '');
+    item.innerHTML = '<div class="row-title">' + c.name + '</div><div class="row-sub">' + c.code + ' · ' + (c.region || 'no region') + ' · ' + c.status + '</div>';
+    item.onclick = () => { selectedCustomerId = c.id; renderCustomers(); };
+    list.appendChild(item);
+  });
+
+  if (selectedCustomerId) await renderCustomerDetail(selectedCustomerId);
+}
+
+async function renderCustomerDetail(id) {
+  const customer = cache.customers.find(c => c.id === id);
+  if (!customer) return;
+  const [envs, assigned] = await Promise.all([
+    api('GET', '/api/v1/customers/' + id + '/environments'),
+    api('GET', '/api/v1/customers/' + id + '/metrics')
+  ]);
+
+  let html = '<div class="customer-detail-name">' + customer.name + '</div>';
+  html += '<div class="customer-detail-sub">' + customer.code + ' · ' + (customer.region || 'no region') + ' · ' + customer.contactEmail + ' · ' + customer.status + '</div>';
+
+  html += '<div class="subsection"><div style="display:flex; justify-content:space-between; align-items:center;"><h4>Environments</h4>' +
+    '<button class="btn small secondary" onclick="openOverlay(\'env-overlay\')">+ Add Environment</button></div>';
+  if (envs.length === 0) html += '<div class="empty-note">No environments yet.</div>';
+  envs.forEach(e => {
+    html += '<div class="inline-list-item"><span>' + e.name + ' <span class="row-sub">' + (e.baseUrl || '') + '</span></span>' +
+      '<span class="tag">' + (e.enabled ? 'enabled' : 'disabled') + '</span></div>';
+  });
+  html += '</div>';
+
+  html += '<div class="subsection"><div style="display:flex; justify-content:space-between; align-items:center;"><h4>Assigned Metrics</h4>' +
+    '<button class="btn small secondary" onclick="openAssignMetric()">+ Assign Metric</button></div>';
+  if (assigned.length === 0) html += '<div class="empty-note">No metrics assigned yet.</div>';
+  assigned.forEach(a => {
+    html += '<div class="inline-list-item"><span>' + a.metric.name + ' <span class="mono">' + a.metric.serviceKey + '</span></span>' +
+      '<span class="tag">' + (a.enabled ? 'enabled' : 'disabled') + '</span></div>';
+  });
+  html += '</div>';
+
+  el('customer-detail').innerHTML = html;
+}
+
+function toggleCustEnvField(envKey) {
+  const checked = el('cust-env-' + envKey).checked;
+  el('cust-env-' + envKey + '-field').style.display = checked ? 'block' : 'none';
+}
+
+async function createCustomer() {
+  el('cust-error').textContent = '';
+
+  const envsToCreate = [];
+  if (el('cust-env-prod').checked) {
+    envsToCreate.push({ name: 'PROD', baseUrl: el('cust-env-prod-url').value || null });
+  }
+  if (el('cust-env-staging').checked) {
+    envsToCreate.push({ name: 'STAGING', baseUrl: el('cust-env-staging-url').value || null });
+  }
+  if (el('cust-env-dev').checked) {
+    envsToCreate.push({ name: 'DEV', baseUrl: el('cust-env-dev-url').value || null });
+  }
+
+  let newCustomer;
+  try {
+    newCustomer = await api('POST', '/api/v1/customers', {
+      name: el('cust-name').value,
+      code: el('cust-code').value,
+      region: el('cust-region').value || null,
+      contactEmail: el('cust-email').value
+    });
+  } catch (e) {
+    el('cust-error').textContent = e.message;
+    return;
+  }
+
+  // Customer was created successfully at this point. Environment creation
+  // happens as a second step against the real customer ID — if one of these
+  // fails, the customer still exists (not rolled back), so we report exactly
+  // which environments failed rather than a generic error that would make it
+  // look like nothing happened.
+  const envErrors = [];
+  for (const env of envsToCreate) {
+    try {
+      await api('POST', '/api/v1/customers/' + newCustomer.id + '/environments', env);
+    } catch (e) {
+      envErrors.push(env.name + ': ' + e.message);
+    }
+  }
+
+  closeOverlay('customer-overlay');
+  ['cust-name','cust-code','cust-email','cust-env-prod-url','cust-env-staging-url','cust-env-dev-url']
+    .forEach(id => el(id).value = '');
+  el('cust-env-prod').checked = true;
+  el('cust-env-staging').checked = false;
+  el('cust-env-dev').checked = false;
+  toggleCustEnvField('prod'); toggleCustEnvField('staging'); toggleCustEnvField('dev');
+
+  if (envErrors.length > 0) {
+    alert('Customer "' + newCustomer.name + '" was created, but some environments failed:\n' + envErrors.join('\n'));
+  }
+
+  renderCustomers();
+}
+
+async function createEnvironment() {
+  el('env-error').textContent = '';
+  try {
+    await api('POST', '/api/v1/customers/' + selectedCustomerId + '/environments', {
+      name: el('env-name').value,
+      baseUrl: el('env-url').value || null
+    });
+    closeOverlay('env-overlay');
+    el('env-name').value = ''; el('env-url').value = '';
+    renderCustomers();
+  } catch (e) { el('env-error').textContent = e.message; }
+}
+
+async function openAssignMetric() {
+  cache.metrics = await api('GET', '/api/v1/metrics');
+  const sel = el('assign-metric');
+  sel.innerHTML = cache.metrics.map(m => '<option value="' + m.id + '">' + m.name + ' (' + m.serviceKey + ')</option>').join('');
+  el('assign-error').textContent = '';
+  openOverlay('assign-overlay');
+}
+async function assignMetricSubmit() {
+  el('assign-error').textContent = '';
+  try {
+    await api('POST', '/api/v1/customers/' + selectedCustomerId + '/metrics', { metricId: Number(el('assign-metric').value) });
+    closeOverlay('assign-overlay');
+    renderCustomers();
+  } catch (e) { el('assign-error').textContent = e.message; }
+}
+
+// ================= METRICS =================
+async function renderMetrics() {
+  cache.metrics = await api('GET', '/api/v1/metrics');
+  let html = '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">' +
+    '<div>' + cache.metrics.length + ' AppWorks metric services</div>' +
+    '<button class="btn" onclick="openOverlay(\'metric-overlay\')">+ Add Metric</button></div>';
+  html += '<div class="panel"><table><thead><tr><th>METRIC NAME</th><th>SERVICE KEY</th><th>DESCRIPTION</th><th>THRESHOLDS</th><th>STATUS</th></tr></thead><tbody>';
+  if (cache.metrics.length === 0) {
+    html += '<tr><td colspan="5"><div class="empty-note">No metrics yet.</div></td></tr>';
+  }
+  cache.metrics.forEach(m => {
+    const thresh = m.comparisonOperator ? (m.comparisonOperator.replace(/_/g,' ').toLowerCase() + ': warn ' + (m.warningThreshold ?? '—') + ' / crit ' + (m.criticalThreshold ?? '—')) : '—';
+    html += '<tr><td class="row-title">' + m.name + '</td><td class="mono">' + m.serviceKey + '</td>' +
+      '<td class="row-sub">' + (m.description || '—') + '</td><td class="row-sub">' + thresh + '</td>' +
+      '<td><span class="tag">' + (m.enabled ? 'enabled' : 'disabled') + '</span></td></tr>';
+  });
+  html += '</tbody></table></div>';
+  el('content').innerHTML = html;
+}
+
+async function createMetric() {
+  el('metric-error').textContent = '';
+  try {
+    await api('POST', '/api/v1/metrics', {
+      name: el('metric-name').value,
+      serviceKey: el('metric-key').value,
+      description: el('metric-desc').value || null,
+      endpoint: el('metric-endpoint').value || null,
+      warningThreshold: el('metric-warn').value ? Number(el('metric-warn').value) : null,
+      criticalThreshold: el('metric-crit').value ? Number(el('metric-crit').value) : null,
+      comparisonOperator: el('metric-op').value || null
+    });
+    closeOverlay('metric-overlay');
+    ['metric-name','metric-key','metric-desc','metric-endpoint','metric-warn','metric-crit'].forEach(id => el(id).value = '');
+    renderMetrics();
+  } catch (e) { el('metric-error').textContent = e.message; }
+}
+
+// ================= RUN HISTORY =================
+let historyFilters = { customerId: '', metricId: '', status: '', page: 0 };
+async function renderHistory() {
+  cache.customers = await api('GET', '/api/v1/customers');
+  cache.metrics = await api('GET', '/api/v1/metrics');
+  const params = new URLSearchParams();
+  if (historyFilters.customerId) params.set('customerId', historyFilters.customerId);
+  if (historyFilters.metricId) params.set('metricId', historyFilters.metricId);
+  if (historyFilters.status) params.set('status', historyFilters.status);
+  params.set('page', historyFilters.page);
+  params.set('size', 20);
+  const page = await api('GET', '/api/v1/runs/history?' + params.toString());
+
+  let html = '<div class="filters-row">';
+  html += '<select onchange="historyFilters.customerId=this.value; historyFilters.page=0; renderHistory();">' +
+    '<option value="">All Customers</option>' +
+    cache.customers.map(c => '<option value="' + c.id + '"' + (historyFilters.customerId == c.id ? ' selected' : '') + '>' + c.name + '</option>').join('') + '</select>';
+  html += '<select onchange="historyFilters.metricId=this.value; historyFilters.page=0; renderHistory();">' +
+    '<option value="">All Metrics</option>' +
+    cache.metrics.map(m => '<option value="' + m.id + '"' + (historyFilters.metricId == m.id ? ' selected' : '') + '>' + m.name + '</option>').join('') + '</select>';
+  html += '<select onchange="historyFilters.status=this.value; historyFilters.page=0; renderHistory();">' +
+    '<option value="">All Status</option>' +
+    ['PASS','WARNING','FAIL','ERROR'].map(s => '<option value="' + s + '"' + (historyFilters.status === s ? ' selected' : '') + '>' + s + '</option>').join('') + '</select>';
+  html += '</div>';
+
+  html += '<div class="panel"><table><thead><tr><th>TIME</th><th>CUSTOMER</th><th>ENVIRONMENT</th><th>METRIC</th><th>STATUS</th><th>DURATION</th><th>OUTPUT</th></tr></thead><tbody>';
+  if (page.content.length === 0) {
+    html += '<tr><td colspan="7"><div class="empty-note">No runs match these filters.</div></td></tr>';
+  }
+  page.content.forEach(r => {
+    html += '<tr><td class="row-sub">' + fmtDate(r.startedAt) + '</td><td>' + r.customerName + '</td>' +
+      '<td><span class="tag">' + r.environmentName + '</span></td><td>' + r.metricName + '</td>' +
+      '<td><span class="badge ' + r.status + '">' + r.status + '</span></td><td class="row-sub">' + r.durationMs + 'ms</td>' +
+      '<td class="mono">' + (r.output || r.errorMessage || '—') + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  html += '<div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">' +
+    '<span class="row-sub">Page ' + (page.page + 1) + ' of ' + Math.max(page.totalPages,1) + ' · ' + page.totalElements + ' total</span>' +
+    '<div>' +
+    '<button class="btn small secondary" ' + (page.page === 0 ? 'disabled' : '') + ' onclick="historyFilters.page--; renderHistory();">Prev</button> ' +
+    '<button class="btn small secondary" ' + (page.page + 1 >= page.totalPages ? 'disabled' : '') + ' onclick="historyFilters.page++; renderHistory();">Next</button>' +
+    '</div></div>';
+  html += '</div>';
+  el('content').innerHTML = html;
+}
+
+// ================= SCHEDULES =================
+async function renderSchedules() {
+  const [schedules, customers] = await Promise.all([
+    api('GET', '/api/v1/schedules'),
+    api('GET', '/api/v1/customers')
+  ]);
+  cache.customers = customers;
+  cache.schedules = schedules;
+
+  let html = '<div class="panel-sub" style="margin-bottom:16px;">Configure automated run intervals per customer × environment × metric</div>';
+  html += '<div class="two-col"><div class="panel"><h3>Active Schedules</h3>';
+  if (schedules.length === 0) html += '<div class="empty-note">No schedules yet.</div>';
+  schedules.forEach(s => {
+    html += '<div class="inline-list-item"><div class="toggle ' + (s.enabled ? 'on' : '') + '" onclick="toggleScheduleEnabled(' + s.id + ', ' + !s.enabled + ')" style="margin-right:12px;"></div><span style="flex:1;">' +
+      '<div class="row-title">' + s.customerName + ' · <span class="tag">' + s.environmentName + '</span></div>' +
+      '<div class="row-sub">' + s.metricName + ' · <span class="mono">' + s.cronExpression + '</span></div>' +
+      '<div class="row-sub">last run: ' + fmtDate(s.lastExecutedAt) + '</div></span>' +
+      '<span><button class="btn small secondary" onclick="deleteSchedule(' + s.id + ')">Delete</button></span></div>';
+  });
+  html += '</div>';
+
+  html += '<div class="panel"><h3>Schedule Builder</h3>' +
+    '<button class="btn" style="margin-top:6px;" onclick="openScheduleBuilder()">+ New Schedule</button>' +
+    '<div class="config-note" style="margin-top:14px;">Only metrics already assigned to a customer (via the Customers page) can be scheduled for that customer.</div></div>';
+  html += '</div>';
+  el('content').innerHTML = html;
+}
+
+async function openScheduleBuilder() {
+  cache.customers = await api('GET', '/api/v1/customers');
+  el('sched-customer').innerHTML = cache.customers.map(c => '<option value="' + c.id + '">' + c.name + '</option>').join('');
+  el('sched-error').textContent = '';
+  el('sched-cron').value = '';
+  if (cache.customers.length > 0) await onSchedCustomerChange();
+  openOverlay('schedule-overlay');
+}
+async function onSchedCustomerChange() {
+  const custId = el('sched-customer').value;
+  if (!custId) return;
+  const [envs, assigned] = await Promise.all([
+    api('GET', '/api/v1/customers/' + custId + '/environments'),
+    api('GET', '/api/v1/customers/' + custId + '/metrics')
+  ]);
+  el('sched-environment').innerHTML = envs.map(e => '<option value="' + e.id + '">' + e.name + '</option>').join('') || '<option value="">No environments</option>';
+  el('sched-metric').innerHTML = assigned.map(a => '<option value="' + a.metric.id + '">' + a.metric.name + '</option>').join('') || '<option value="">No assigned metrics</option>';
+}
+async function createSchedule() {
+  el('sched-error').textContent = '';
+  try {
+    await api('POST', '/api/v1/schedules', {
+      customerId: Number(el('sched-customer').value),
+      environmentId: Number(el('sched-environment').value),
+      metricId: Number(el('sched-metric').value),
+      cronExpression: el('sched-cron').value,
+      enabled: el('sched-enabled-toggle').classList.contains('on')
+    });
+    closeOverlay('schedule-overlay');
+    renderSchedules();
+  } catch (e) { el('sched-error').textContent = e.message; }
+}
+async function deleteSchedule(id) {
+  try {
+    await api('DELETE', '/api/v1/schedules/' + id);
+    renderSchedules();
+  } catch (e) {
+    // Previously this error was silently swallowed — a failed delete looked
+    // identical to a successful one (nothing visibly happened either way).
+    alert('Could not delete schedule: ' + e.message);
+  }
+}
+async function toggleScheduleEnabled(id, newEnabled) {
+  const s = (cache.schedules || []).find(x => x.id === id);
+  if (!s) return;
+  try {
+    await api('PUT', '/api/v1/schedules/' + id, {
+      customerId: s.customerId,
+      environmentId: s.environmentId,
+      metricId: s.metricId,
+      cronExpression: s.cronExpression,
+      enabled: newEnabled
+    });
+    renderSchedules();
+  } catch (e) {
+    alert('Could not update schedule: ' + e.message);
+  }
+}
+
+// ================= APPWORKS CONFIG =================
+async function renderConfig() {
+  cache.metrics = await api('GET', '/api/v1/metrics');
+  let html = '<div class="panel"><h3>AppWorks Service Endpoints</h3><div class="panel-sub">Backed by the real Metric catalog — toggling here calls the actual API</div>';
+  html += '<table><thead><tr><th>SERVICE KEY</th><th>METRIC</th><th>ENDPOINT</th><th>STATUS</th></tr></thead><tbody>';
+  cache.metrics.forEach(m => {
+    html += '<tr><td class="mono">' + m.serviceKey + '</td><td class="row-title">' + m.name + '</td>' +
+      '<td class="row-sub">' + (m.endpoint || '—') + '</td>' +
+      '<td><div class="toggle ' + (m.enabled ? 'on' : '') + '" onclick="toggleMetricEnabled(' + m.id + ', ' + !m.enabled + ')"></div></td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  html += '<div class="panel"><h3>Spring Boot Server Settings</h3>' +
+    '<div class="config-note">These fields are shown for reference only — there is no backend endpoint to save arbitrary server settings like this. ' +
+    'The actual database connection, port, and other server config are set in <span class="mono">application.yml</span> on the server itself, not through this UI.</div>' +
+    '<div class="field-row" style="margin-top:14px;">' +
+    '<div class="field"><label>API Base URL</label><input value="' + window.location.origin + '/api/v1" disabled></div>' +
+    '<div class="field"><label>Database</label><input value="see application.yml (H2 or Postgres profile)" disabled></div>' +
+    '</div></div>';
+
+  el('content').innerHTML = html;
+}
+async function toggleMetricEnabled(id, newEnabled) {
+  const m = cache.metrics.find(x => x.id === id);
+  try {
+    await api('PUT', '/api/v1/metrics/' + id, {
+      name: m.name, serviceKey: m.serviceKey, description: m.description, endpoint: m.endpoint,
+      enabled: newEnabled, warningThreshold: m.warningThreshold, criticalThreshold: m.criticalThreshold,
+      comparisonOperator: m.comparisonOperator
+    });
+    renderConfig();
+  } catch (e) { alert(e.message); }
+}
+
+// ================= MANUAL RUN (global) =================
+let selectedRunMetrics = new Set();
+async function openRunNow() {
+  cache.customers = await api('GET', '/api/v1/customers');
+  el('run-customer').innerHTML = cache.customers.map(c => '<option value="' + c.id + '">' + c.name + '</option>').join('') || '<option value="">No customers yet</option>';
+  el('run-error').textContent = '';
+  selectedRunMetrics = new Set();
+  if (cache.customers.length > 0) await onRunCustomerChange();
+  openOverlay('run-overlay');
+}
+async function onRunCustomerChange() {
+  const custId = el('run-customer').value;
+  if (!custId) return;
+  const [envs, assigned] = await Promise.all([
+    api('GET', '/api/v1/customers/' + custId + '/environments'),
+    api('GET', '/api/v1/customers/' + custId + '/metrics')
+  ]);
+  el('run-environment').innerHTML = envs.map(e => '<option value="' + e.id + '">' + e.name + '</option>').join('') || '<option value="">No environments</option>';
+  selectedRunMetrics = new Set();
+  const grid = el('run-metric-grid');
+  grid.innerHTML = '';
+  if (assigned.length === 0) { grid.innerHTML = '<div class="empty-note">No metrics assigned to this customer yet.</div>'; return; }
+  assigned.forEach(a => {
+    const pill = document.createElement('div');
+    pill.className = 'metric-pill';
+    pill.textContent = a.metric.name;
+    pill.onclick = () => {
+      if (selectedRunMetrics.has(a.metric.id)) { selectedRunMetrics.delete(a.metric.id); pill.classList.remove('selected'); }
+      else { selectedRunMetrics.add(a.metric.id); pill.classList.add('selected'); }
+    };
+    grid.appendChild(pill);
+  });
+}
+async function executeManualRun() {
+  el('run-error').textContent = '';
+  if (selectedRunMetrics.size === 0) { el('run-error').textContent = 'Select at least one metric.'; return; }
+  try {
+    await api('POST', '/api/v1/runs', {
+      customerId: Number(el('run-customer').value),
+      environmentId: Number(el('run-environment').value),
+      metricIds: Array.from(selectedRunMetrics)
+    });
+    closeOverlay('run-overlay');
+    if (currentRoute === 'dashboard' || currentRoute === 'history') render();
+  } catch (e) { el('run-error').textContent = e.message; }
+}
+
+// ---------- init ----------
+navigate('dashboard');
+checkApiStatus();
+setInterval(checkApiStatus, 15000);
+</script>
+</body>
+</html>

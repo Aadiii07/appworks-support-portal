@@ -1,0 +1,81 @@
+spring:
+  application:
+    name: appworks-support-portal
+
+  # Default profile: H2 in-memory DB, so the app runs immediately with `mvn spring-boot:run`
+  # with zero external setup. Switch to the postgres profile once you're ready to use
+  # your real database: mvn spring-boot:run -Dspring-boot.run.profiles=postgres
+  # datasource:
+  #   url: jdbc:h2:mem:supportportal;DB_CLOSE_DELAY=-1
+  #   driver-class-name: org.h2.Driver
+  #   username: sa
+  #   password: ""
+
+  # h2:
+  #   console:
+  #     enabled: true
+  #     path: /h2-console
+
+  # jpa:
+  #   hibernate:
+  #     ddl-auto: update
+  #   show-sql: true
+  #   properties:
+  #     hibernate:
+  #       format_sql: true
+  #   database-platform: org.hibernate.dialect.H2Dialect
+
+  # Alert email SMTP settings. Values come from environment variables so
+  # credentials stay outside the repository.
+  mail:
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.appworks.portal: DEBUG
+
+# Alert email: OFF by default because no SMTP server/credentials are configured.
+# With email-enabled: false (the default), alerts are logged instead of sent —
+# see AlertService. To actually send email:
+#   1. Set app.alerts.email-enabled: true below
+#   2. Set SMTP_HOST, SMTP_USERNAME, and SMTP_PASSWORD in your environment
+#      (for Gmail, use an App Password rather than your normal password)
+#   3. Set app.alerts.from-address to a sender address your SMTP server
+#      is allowed to send as
+app:
+  alerts:
+    email-enabled: false
+    from-address: noreply@supportportal.local
+
+---
+spring:
+  config:
+    activate:
+      on-profile: postgres
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/appworks_support_portal}
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
