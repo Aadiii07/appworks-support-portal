@@ -19,7 +19,7 @@
 
 **Mock AppWorks integration:** MockAppworksClient uses deterministic hashing, so the same customer/environment/metric always produces the same result (good for predictable testing, but means health won't show variation in a demo without code changes).
 
-**Database:** H2 by default (zero setup), PostgreSQL profile ready. PostgreSQL and SMTP credentials are read from environment variables and are not stored in this repository. See `src/main/resources/application-example.yml` for the configuration template.
+**Database:** H2 by default (zero setup), PostgreSQL profile ready.
 
 **Tests (9 integration + unit test classes):** 
 - Customers, Environments, Metrics, CustomerMetrics (from Milestones 1–3, pre-audit)
@@ -36,16 +36,20 @@
 A single-page app at `src/main/resources/static/index.html`, served automatically by Spring Boot at `http://localhost:8080/` (same origin as the API — no CORS setup needed). Styled to match the actual reference UI screenshots (dark theme, sidebar nav, badge colors) rather than an invented design. Every page is wired to real endpoints:
 
 - **Dashboard** — live KPIs, recent runs, customer health bars, **and an "All Metrics — Last Run Status" grid** (added after comparing against the reference UI), all from `/api/v1/dashboard/*` and `/api/v1/runs/history`
-- **Customers** — list + create + detail view (environments, assigned metrics), all real CRUD
-- **Metrics** — list + create, real CRUD
+- **Customers** — list + create + **edit** + detail view (environments, assigned metrics), all real CRUD
+- **Metrics** — list + create + **edit**, real CRUD
 - **Run History** — filterable by customer/**metric**/status with pagination, real data (metric filter added after comparing against the reference UI)
-- **Schedules** — list + create + delete + **enable/disable toggle** (added after comparing against reference UI), cascading customer→environment/metric dropdowns that only show metrics actually assigned to the selected customer (matches the backend's validation)
+- **Schedules** — list + create + delete + **enable/disable toggle** + **cron presets** (Every 5 min / 15 min / hourly / every 6h / daily / weekly / custom — picking a preset fills the cron field, typing a custom value switches the dropdown to "Custom" automatically), cascading customer→environment/metric dropdowns that only show metrics actually assigned to the selected customer (matches the backend's validation)
 - **AppWorks Config** — the per-metric endpoint/enable toggle is real (calls the actual `PUT /api/v1/metrics/{id}`). The "Spring Boot Server Settings" section (API Base URL, DB Host, Redis Host) is shown **disabled with an explicit note** that there's no backend endpoint for it — the reference UI has this section but nothing in the requirements ever specified persisting arbitrary server config through the API, so faking a working save button would be dishonest UI, not a shortcut.
 - **Run Now** — global button, opens the same manual-run flow as Run History, calls the real `POST /api/v1/runs`
 
 I could not click through this in a real browser in my sandbox. What I did verify: extracted the `<script>` block and checked it with `node --check` (confirms valid JS syntax, catches broken string escaping), and cross-referenced every DOM element ID referenced in JS against the actual HTML elements, and every field name used in the frontend against the actual backend DTO field names. **You should still click through it yourself** — syntax validity and field-name matching don't catch every possible runtime or layout issue, especially anything involving actual browser rendering.
 
 ## Real bugs found during audit and fixed
+
+9. **application.yml was hand-edited outside of this process and broke.** The default (non-postgres-profile) H2 datasource block got entirely commented out — apparently in an attempt to move secrets to environment variables, but it deleted the wrong block instead of parameterizing it. This meant running the app without the postgres profile no longer had an explicit datasource config at all, so Spring Boot silently fell back to auto-generating its own embedded database — explaining why customers created in some browser sessions never showed up in Postgres (they landed in a different, ad-hoc H2 instance each time). **Fixed properly**: restored the default H2 block, and implemented the "secrets via env vars" pattern correctly and consistently — `DB_URL`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD` are all overridable via environment variables with working local-dev defaults, so nothing breaks if you don't set them, and real credentials never need to be hardcoded in a file that might get committed. **Do not hand-edit this file's structure again** — override via env vars instead, or ask for a change here.
+
+10. **No visibility into which database is actually connected** — the root cause that let bug #9 go unnoticed for two separate sessions. Added `GET /api/v1/system/info` and a status pill in the frontend topbar that shows "PostgreSQL (persistent)" or "H2 (in-memory, not saved)" at all times, refreshed every 15 seconds. This mismatch is now visible immediately in the UI instead of only discoverable by manually cross-checking pgAdmin against the browser.
 
 7. **Run History filter completely broken against real PostgreSQL** (found via manual browser testing after switching to the postgres profile, not by any automated test — the entire test suite runs against H2, which is far more lenient about this than Postgres). The original query used `(? IS NULL OR column = ?)` for every optional filter, so a single value could either skip or apply the filter. Postgres's JDBC driver throws `ERROR: could not determine data type of parameter $9` on this pattern, because it binds each `?` as an independent position and can't infer a type for one used only in an `IS NULL` check — even though it's logically the same value as a properly-typed `?` elsewhere in the query. This broke both `GET /api/v1/runs/history` directly and the Dashboard (which calls that same endpoint for "Recent Runs"), meaning the Dashboard would fail to load entirely on Postgres. **Fixed properly, not patched**: replaced the JPQL null-check pattern with a JPA `Specification` (`RunSpecifications`) that only adds a predicate when a filter value is actually provided — so there is never an ambiguous, type-less parameter sent to the database in the first place.
 
@@ -96,11 +100,6 @@ cd appworks-support-portal
 mvn clean install        # compiles, runs all 9 test classes (16+ test methods total)
 mvn spring-boot:run      # starts on http://localhost:8080
 ```
-
-For PostgreSQL and email alerts, set `DB_USERNAME`, `DB_PASSWORD`, `SMTP_HOST`,
-`SMTP_USERNAME`, and `SMTP_PASSWORD` in the environment before starting the
-`postgres` profile. Set `DB_URL` or `SMTP_PORT` only when the defaults do not
-match your setup. Never commit a local `.env` or `application-local.yml` file.
 
 Once running:
 

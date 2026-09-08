@@ -1,8 +1,6 @@
 target/
-.env
-.env.*
-!.env.example
-application-local.yml
-application-local.yaml
-src/main/resources/application-local.yml
-src/main/resources/application-local.yaml
+.idea/
+*.iml
+.vscode/
+*.class
+*.log

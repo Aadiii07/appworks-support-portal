@@ -5,30 +5,35 @@ spring:
   # Default profile: H2 in-memory DB, so the app runs immediately with `mvn spring-boot:run`
   # with zero external setup. Switch to the postgres profile once you're ready to use
   # your real database: mvn spring-boot:run -Dspring-boot.run.profiles=postgres
-  # datasource:
-  #   url: jdbc:h2:mem:supportportal;DB_CLOSE_DELAY=-1
-  #   driver-class-name: org.h2.Driver
-  #   username: sa
-  #   password: ""
+  datasource:
+    url: jdbc:h2:mem:supportportal;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
 
-  # h2:
-  #   console:
-  #     enabled: true
-  #     path: /h2-console
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
 
-  # jpa:
-  #   hibernate:
-  #     ddl-auto: update
-  #   show-sql: true
-  #   properties:
-  #     hibernate:
-  #       format_sql: true
-  #   database-platform: org.hibernate.dialect.H2Dialect
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    database-platform: org.hibernate.dialect.H2Dialect
 
-  # Alert email SMTP settings. Values come from environment variables so
-  # credentials stay outside the repository.
+  # Alert email SMTP settings. See app.alerts.email-enabled below — this is
+  # inactive (unused) until that flag is set to true, since no real SMTP
+  # server/credentials exist yet. Values can be overridden via environment
+  # variables (SMTP_HOST / SMTP_USERNAME / SMTP_PASSWORD) so real credentials
+  # never need to be hardcoded here or committed to source control — the
+  # defaults after the colon (e.g. smtp.example.com) are placeholders used
+  # only when those env vars aren't set.
   mail:
-    host: ${SMTP_HOST:}
+    host: ${SMTP_HOST:smtp.example.com}
     port: 587
     username: ${SMTP_USERNAME:}
     password: ${SMTP_PASSWORD:}
@@ -46,13 +51,14 @@ logging:
   level:
     com.appworks.portal: DEBUG
 
-# Alert email: OFF by default because no SMTP server/credentials are configured.
+# Alert email: OFF by default because no real SMTP server/credentials exist yet.
 # With email-enabled: false (the default), alerts are logged instead of sent —
 # see AlertService. To actually send email:
 #   1. Set app.alerts.email-enabled: true below
-#   2. Set SMTP_HOST, SMTP_USERNAME, and SMTP_PASSWORD in your environment
-#      (for Gmail, use an App Password rather than your normal password)
-#   3. Set app.alerts.from-address to a sender address your SMTP server
+#   2. Fill in the spring.mail.* values above with your real SMTP details
+#      (for Gmail: smtp.gmail.com, port 587, an App Password — not your normal
+#      password — since Gmail blocks plain password SMTP auth)
+#   3. Set app.alerts.from-address to a real sender address your SMTP server
 #      is allowed to send as
 app:
   alerts:
@@ -65,11 +71,21 @@ spring:
     activate:
       on-profile: postgres
 
+  # Credentials can be overridden via environment variables (DB_URL /
+  # POSTGRES_USER / POSTGRES_PASSWORD) instead of editing this file directly —
+  # the defaults after each colon match this project's local dev setup, and
+  # only apply when those env vars aren't set. DO NOT hand-edit this block to
+  # remove the defaults entirely — a previous attempt at this accidentally
+  # deleted the *default* (non-postgres) H2 datasource block instead, which
+  # broke the app's default profile completely (Spring Boot silently fell
+  # back to an auto-generated embedded database instead of the intended
+  # named H2 instance). If you need to change credentials, override the env
+  # var; don't remove the config block.
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/appworks_support_portal}
     driver-class-name: org.postgresql.Driver
-    username: ${DB_USERNAME:}
-    password: ${DB_PASSWORD:}
+    username: ${POSTGRES_USER:}
+    password: ${POSTGRES_PASSWORD:}
 
   jpa:
     hibernate:
@@ -79,7 +95,3 @@ spring:
       hibernate:
         format_sql: true
     database-platform: org.hibernate.dialect.PostgreSQLDialect
-
-
-
-# 33, 34, 69, 71, 72

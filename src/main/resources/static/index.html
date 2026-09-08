@@ -224,6 +224,7 @@
     <div class="topbar">
       <h1 id="page-title">Dashboard</h1>
       <div class="topbar-right">
+        <span class="status-pill" id="db-status"><span class="status-dot"></span>Checking DB...</span>
         <span class="status-pill" id="api-status"><span class="status-dot"></span>Checking...</span>
         <button class="btn" onclick="openRunNow()">▶ Run Now</button>
       </div>
@@ -259,7 +260,7 @@
 <!-- Add Customer overlay -->
 <div class="overlay" id="customer-overlay">
   <div class="side-panel">
-    <div class="panel-header"><h2>Add Customer</h2><button class="close-x" onclick="closeOverlay('customer-overlay')">✕</button></div>
+    <div class="panel-header"><h2 id="customer-overlay-title">Add Customer</h2><button class="close-x" onclick="closeOverlay('customer-overlay')">✕</button></div>
     <div class="field"><label>Customer Name</label><input id="cust-name" placeholder="Acme Corp"></div>
     <div class="field-row">
       <div class="field"><label>Customer Code</label><input id="cust-code" placeholder="ACME"></div>
@@ -275,37 +276,39 @@
     </div>
     <div class="field"><label>Contact Email</label><input id="cust-email" placeholder="ops@acme.com"></div>
 
-    <div class="field">
-      <label>Environments</label>
-      <div class="checkbox-row" style="gap:18px;">
-        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-          <input type="checkbox" id="cust-env-prod" checked onchange="toggleCustEnvField('prod')"> PROD
-        </label>
-        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-          <input type="checkbox" id="cust-env-staging" onchange="toggleCustEnvField('staging')"> STAGING
-        </label>
-        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-          <input type="checkbox" id="cust-env-dev" onchange="toggleCustEnvField('dev')"> DEV
-        </label>
+    <div id="cust-env-section">
+      <div class="field">
+        <label>Environments</label>
+        <div class="checkbox-row" style="gap:18px;">
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+            <input type="checkbox" id="cust-env-prod" checked onchange="toggleCustEnvField('prod')"> PROD
+          </label>
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+            <input type="checkbox" id="cust-env-staging" onchange="toggleCustEnvField('staging')"> STAGING
+          </label>
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+            <input type="checkbox" id="cust-env-dev" onchange="toggleCustEnvField('dev')"> DEV
+          </label>
+        </div>
       </div>
-    </div>
-    <div class="field" id="cust-env-prod-field">
-      <label>PROD Base URL</label>
-      <input id="cust-env-prod-url" placeholder="https://acme.appworks.com/api">
-    </div>
-    <div class="field" id="cust-env-staging-field" style="display:none;">
-      <label>STAGING Base URL</label>
-      <input id="cust-env-staging-url" placeholder="https://staging.acme.appworks.com/api">
-    </div>
-    <div class="field" id="cust-env-dev-field" style="display:none;">
-      <label>DEV Base URL</label>
-      <input id="cust-env-dev-url" placeholder="https://dev.acme.appworks.com/api">
+      <div class="field" id="cust-env-prod-field">
+        <label>PROD Base URL</label>
+        <input id="cust-env-prod-url" placeholder="https://acme.appworks.com/api">
+      </div>
+      <div class="field" id="cust-env-staging-field" style="display:none;">
+        <label>STAGING Base URL</label>
+        <input id="cust-env-staging-url" placeholder="https://staging.acme.appworks.com/api">
+      </div>
+      <div class="field" id="cust-env-dev-field" style="display:none;">
+        <label>DEV Base URL</label>
+        <input id="cust-env-dev-url" placeholder="https://dev.acme.appworks.com/api">
+      </div>
     </div>
 
     <div id="cust-error" class="error-note"></div>
     <div class="form-footer">
       <button class="btn secondary" onclick="closeOverlay('customer-overlay')">Cancel</button>
-      <button class="btn" onclick="createCustomer()">Create Customer</button>
+      <button class="btn" id="cust-submit-btn" onclick="createCustomer()">Create Customer</button>
     </div>
   </div>
 </div>
@@ -313,7 +316,7 @@
 <!-- Add Metric overlay -->
 <div class="overlay" id="metric-overlay">
   <div class="side-panel">
-    <div class="panel-header"><h2>Add Metric</h2><button class="close-x" onclick="closeOverlay('metric-overlay')">✕</button></div>
+    <div class="panel-header"><h2 id="metric-overlay-title">Add Metric</h2><button class="close-x" onclick="closeOverlay('metric-overlay')">✕</button></div>
     <div class="field"><label>Metric Name</label><input id="metric-name" placeholder="Queue Depth Monitor"></div>
     <div class="field"><label>Service Key</label><input id="metric-key" placeholder="SVC_QUEUE_03"></div>
     <div class="field"><label>Description</label><input id="metric-desc" placeholder="Monitors task queue backlog"></div>
@@ -335,7 +338,7 @@
     <div id="metric-error" class="error-note"></div>
     <div class="form-footer">
       <button class="btn secondary" onclick="closeOverlay('metric-overlay')">Cancel</button>
-      <button class="btn" onclick="createMetric()">Create Metric</button>
+      <button class="btn" id="metric-submit-btn" onclick="createMetric()">Create Metric</button>
     </div>
   </div>
 </div>
@@ -357,9 +360,21 @@
       <select id="sched-metric"></select>
     </div>
     <div class="field">
+      <label>Schedule Type</label>
+      <select id="sched-preset" onchange="applyCronPreset()">
+        <option value="*/5 * * * *">Every 5 minutes</option>
+        <option value="*/15 * * * *">Every 15 minutes</option>
+        <option value="0 * * * *">Every hour</option>
+        <option value="0 */6 * * *">Every 6 hours</option>
+        <option value="0 8 * * *">Daily at 8:00 AM</option>
+        <option value="0 8 * * MON">Weekly, Monday 8:00 AM</option>
+        <option value="custom">Custom cron expression…</option>
+      </select>
+    </div>
+    <div class="field">
       <label>Cron Expression</label>
-      <input id="sched-cron" placeholder="*/5 * * * *">
-      <div class="row-sub" style="margin-top:6px;">5-field Unix cron accepted (e.g. every 5 min = */5 * * * *)</div>
+      <input id="sched-cron" placeholder="*/5 * * * *" oninput="onCronManuallyEdited()">
+      <div class="row-sub" style="margin-top:6px;">5-field Unix cron accepted (e.g. every 5 min = */5 * * * *). Picking a Schedule Type above fills this in automatically — edit it directly for anything else.</div>
     </div>
     <div class="checkbox-row">
       <div class="toggle on" id="sched-enabled-toggle" onclick="this.classList.toggle('on')"></div>
@@ -457,6 +472,34 @@ async function checkApiStatus() {
   } catch (e) {
     pill.className = 'status-pill off';
     pill.innerHTML = '<span class="status-dot"></span>API Disconnected';
+  }
+}
+
+/**
+ * Fixes a real, repeated point of confusion: the "postgres" profile is
+ * activated per-terminal-session, so it's easy to accidentally run on the
+ * default in-memory H2 database without noticing — data silently goes
+ * somewhere that vanishes on restart, and looks completely normal in the UI
+ * the whole time. This shows exactly which database is active, at all times,
+ * so that mismatch is visible immediately instead of only discoverable by
+ * manually cross-checking pgAdmin against the browser.
+ */
+async function checkDbStatus() {
+  const pill = el('db-status');
+  try {
+    const info = await api('GET', '/api/v1/system/info');
+    if (info.isInMemory === 'true') {
+      pill.className = 'status-pill off';
+      pill.innerHTML = '<span class="status-dot"></span>H2 (in-memory, not saved)';
+      pill.title = info.warning;
+    } else {
+      pill.className = 'status-pill';
+      pill.innerHTML = '<span class="status-dot"></span>PostgreSQL (persistent)';
+      pill.title = info.datasourceUrl;
+    }
+  } catch (e) {
+    pill.className = 'status-pill off';
+    pill.innerHTML = '<span class="status-dot"></span>DB status unknown';
   }
 }
 
@@ -560,7 +603,7 @@ async function renderCustomers() {
   cache.customers = await api('GET', '/api/v1/customers');
   let html = '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">' +
     '<div>' + cache.customers.length + ' customers configured</div>' +
-    '<button class="btn" onclick="openOverlay(\'customer-overlay\')">+ Add Customer</button></div>';
+    '<button class="btn" onclick="openAddCustomer()">+ Add Customer</button></div>';
   html += '<div class="two-col" style="grid-template-columns: 340px 1fr;">';
   html += '<div class="panel"><h3>Customers</h3><div id="customer-list" style="margin-top:10px;"></div></div>';
   html += '<div class="panel" id="customer-detail"><div class="empty-note">Select a customer to view details</div></div>';
@@ -587,8 +630,10 @@ async function renderCustomerDetail(id) {
     api('GET', '/api/v1/customers/' + id + '/metrics')
   ]);
 
-  let html = '<div class="customer-detail-name">' + customer.name + '</div>';
-  html += '<div class="customer-detail-sub">' + customer.code + ' · ' + (customer.region || 'no region') + ' · ' + customer.contactEmail + ' · ' + customer.status + '</div>';
+  let html = '<div style="display:flex; justify-content:space-between; align-items:flex-start;">' +
+    '<div><div class="customer-detail-name">' + customer.name + '</div>' +
+    '<div class="customer-detail-sub">' + customer.code + ' · ' + (customer.region || 'no region') + ' · ' + customer.contactEmail + ' · ' + customer.status + '</div></div>' +
+    '<button class="btn small secondary" onclick="openEditCustomer(' + customer.id + ')">Edit</button></div>';
 
   html += '<div class="subsection"><div style="display:flex; justify-content:space-between; align-items:center;"><h4>Environments</h4>' +
     '<button class="btn small secondary" onclick="openOverlay(\'env-overlay\')">+ Add Environment</button></div>';
@@ -616,8 +661,55 @@ function toggleCustEnvField(envKey) {
   el('cust-env-' + envKey + '-field').style.display = checked ? 'block' : 'none';
 }
 
+let editingCustomerId = null;
+
+function openAddCustomer() {
+  editingCustomerId = null;
+  el('customer-overlay-title').textContent = 'Add Customer';
+  el('cust-submit-btn').textContent = 'Create Customer';
+  el('cust-env-section').style.display = 'block';
+  ['cust-name','cust-code','cust-email'].forEach(id => el(id).value = '');
+  el('cust-region').value = 'US-East';
+  el('cust-error').textContent = '';
+  openOverlay('customer-overlay');
+}
+
+function openEditCustomer(id) {
+  const customer = cache.customers.find(c => c.id === id);
+  if (!customer) return;
+  editingCustomerId = id;
+  el('customer-overlay-title').textContent = 'Edit Customer';
+  el('cust-submit-btn').textContent = 'Save Changes';
+  // Environments are managed separately in the customer detail view — editing
+  // basic customer fields shouldn't also try to create new environments.
+  el('cust-env-section').style.display = 'none';
+  el('cust-name').value = customer.name;
+  el('cust-code').value = customer.code;
+  el('cust-region').value = customer.region || 'US-East';
+  el('cust-email').value = customer.contactEmail;
+  el('cust-error').textContent = '';
+  openOverlay('customer-overlay');
+}
+
 async function createCustomer() {
   el('cust-error').textContent = '';
+
+  if (editingCustomerId) {
+    try {
+      await api('PUT', '/api/v1/customers/' + editingCustomerId, {
+        name: el('cust-name').value,
+        code: el('cust-code').value,
+        region: el('cust-region').value || null,
+        contactEmail: el('cust-email').value
+      });
+      closeOverlay('customer-overlay');
+      editingCustomerId = null;
+      renderCustomers();
+    } catch (e) {
+      el('cust-error').textContent = e.message;
+    }
+    return;
+  }
 
   const envsToCreate = [];
   if (el('cust-env-prod').checked) {
@@ -706,35 +798,75 @@ async function renderMetrics() {
   cache.metrics = await api('GET', '/api/v1/metrics');
   let html = '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">' +
     '<div>' + cache.metrics.length + ' AppWorks metric services</div>' +
-    '<button class="btn" onclick="openOverlay(\'metric-overlay\')">+ Add Metric</button></div>';
-  html += '<div class="panel"><table><thead><tr><th>METRIC NAME</th><th>SERVICE KEY</th><th>DESCRIPTION</th><th>THRESHOLDS</th><th>STATUS</th></tr></thead><tbody>';
+    '<button class="btn" onclick="openAddMetric()">+ Add Metric</button></div>';
+  html += '<div class="panel"><table><thead><tr><th>METRIC NAME</th><th>SERVICE KEY</th><th>DESCRIPTION</th><th>THRESHOLDS</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody>';
   if (cache.metrics.length === 0) {
-    html += '<tr><td colspan="5"><div class="empty-note">No metrics yet.</div></td></tr>';
+    html += '<tr><td colspan="6"><div class="empty-note">No metrics yet.</div></td></tr>';
   }
   cache.metrics.forEach(m => {
     const thresh = m.comparisonOperator ? (m.comparisonOperator.replace(/_/g,' ').toLowerCase() + ': warn ' + (m.warningThreshold ?? '—') + ' / crit ' + (m.criticalThreshold ?? '—')) : '—';
     html += '<tr><td class="row-title">' + m.name + '</td><td class="mono">' + m.serviceKey + '</td>' +
       '<td class="row-sub">' + (m.description || '—') + '</td><td class="row-sub">' + thresh + '</td>' +
-      '<td><span class="tag">' + (m.enabled ? 'enabled' : 'disabled') + '</span></td></tr>';
+      '<td><span class="tag">' + (m.enabled ? 'enabled' : 'disabled') + '</span></td>' +
+      '<td><button class="btn small secondary" onclick="openEditMetric(' + m.id + ')">Edit</button></td></tr>';
   });
   html += '</tbody></table></div>';
   el('content').innerHTML = html;
 }
 
+let editingMetricId = null;
+
+function openAddMetric() {
+  editingMetricId = null;
+  el('metric-overlay-title').textContent = 'Add Metric';
+  el('metric-submit-btn').textContent = 'Create Metric';
+  ['metric-name','metric-key','metric-desc','metric-endpoint','metric-warn','metric-crit'].forEach(id => el(id).value = '');
+  el('metric-op').value = '';
+  el('metric-error').textContent = '';
+  openOverlay('metric-overlay');
+}
+
+function openEditMetric(id) {
+  const metric = cache.metrics.find(m => m.id === id);
+  if (!metric) return;
+  editingMetricId = id;
+  el('metric-overlay-title').textContent = 'Edit Metric';
+  el('metric-submit-btn').textContent = 'Save Changes';
+  el('metric-name').value = metric.name;
+  el('metric-key').value = metric.serviceKey;
+  el('metric-desc').value = metric.description || '';
+  el('metric-endpoint').value = metric.endpoint || '';
+  el('metric-warn').value = metric.warningThreshold ?? '';
+  el('metric-crit').value = metric.criticalThreshold ?? '';
+  el('metric-op').value = metric.comparisonOperator || '';
+  el('metric-error').textContent = '';
+  openOverlay('metric-overlay');
+}
+
 async function createMetric() {
   el('metric-error').textContent = '';
+  const body = {
+    name: el('metric-name').value,
+    serviceKey: el('metric-key').value,
+    description: el('metric-desc').value || null,
+    endpoint: el('metric-endpoint').value || null,
+    warningThreshold: el('metric-warn').value ? Number(el('metric-warn').value) : null,
+    criticalThreshold: el('metric-crit').value ? Number(el('metric-crit').value) : null,
+    comparisonOperator: el('metric-op').value || null
+  };
   try {
-    await api('POST', '/api/v1/metrics', {
-      name: el('metric-name').value,
-      serviceKey: el('metric-key').value,
-      description: el('metric-desc').value || null,
-      endpoint: el('metric-endpoint').value || null,
-      warningThreshold: el('metric-warn').value ? Number(el('metric-warn').value) : null,
-      criticalThreshold: el('metric-crit').value ? Number(el('metric-crit').value) : null,
-      comparisonOperator: el('metric-op').value || null
-    });
+    if (editingMetricId) {
+      // Preserve the existing enabled flag on edit — this form doesn't expose
+      // an enabled toggle (that lives on the AppWorks Config page), so we
+      // must carry the current value forward rather than letting it default.
+      const existing = cache.metrics.find(m => m.id === editingMetricId);
+      body.enabled = existing ? existing.enabled : true;
+      await api('PUT', '/api/v1/metrics/' + editingMetricId, body);
+      editingMetricId = null;
+    } else {
+      await api('POST', '/api/v1/metrics', body);
+    }
     closeOverlay('metric-overlay');
-    ['metric-name','metric-key','metric-desc','metric-endpoint','metric-warn','metric-crit'].forEach(id => el(id).value = '');
     renderMetrics();
   } catch (e) { el('metric-error').textContent = e.message; }
 }
@@ -817,10 +949,31 @@ async function openScheduleBuilder() {
   cache.customers = await api('GET', '/api/v1/customers');
   el('sched-customer').innerHTML = cache.customers.map(c => '<option value="' + c.id + '">' + c.name + '</option>').join('');
   el('sched-error').textContent = '';
-  el('sched-cron').value = '';
+  el('sched-preset').value = '*/5 * * * *';
+  el('sched-cron').value = '*/5 * * * *';
   if (cache.customers.length > 0) await onSchedCustomerChange();
   openOverlay('schedule-overlay');
 }
+
+function applyCronPreset() {
+  const preset = el('sched-preset').value;
+  if (preset === 'custom') {
+    el('sched-cron').focus();
+    return;
+  }
+  el('sched-cron').value = preset;
+}
+
+function onCronManuallyEdited() {
+  // If the user types a cron expression by hand, the preset dropdown no
+  // longer reflects what's actually going to be submitted — switch it to
+  // "Custom" so the two controls don't silently disagree with each other.
+  const current = el('sched-cron').value.trim();
+  const presetSelect = el('sched-preset');
+  const matchingOption = Array.from(presetSelect.options).find(o => o.value === current);
+  presetSelect.value = matchingOption ? matchingOption.value : 'custom';
+}
+
 async function onSchedCustomerChange() {
   const custId = el('sched-customer').value;
   if (!custId) return;
@@ -956,7 +1109,9 @@ async function executeManualRun() {
 // ---------- init ----------
 navigate('dashboard');
 checkApiStatus();
+checkDbStatus();
 setInterval(checkApiStatus, 15000);
+setInterval(checkDbStatus, 15000);
 </script>
 </body>
 </html>
